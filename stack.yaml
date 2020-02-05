@@ -1,4 +1,8 @@
-resolver: lts-14.22
+resolver: nightly-2020-01-31
 
 packages:
 - .
+
+extra-deps:
+- polysemy-plugin-0.2.4.0@sha256:b27f399946e90d480271d2b655b6172ed80f9d421f871c21a804511bc7b0f53c,2952
+- ghc-tcplugins-extra-0.3.2@sha256:1bbfd4449c3669a31618ea0ebc5d00d980a53988daad3b6218bab5c8cdff268d,1687

@@ -12,8 +12,31 @@ extra-source-files:
 
 description:         Please see the README on GitHub at <https://github.com/EncodePanda/maintainable-software-architecture-in-haskell#readme>
 
+ghc-options:
+- -fplugin=Polysemy.Plugin
+
+default-extensions:
+- DataKinds
+- DerivingStrategies
+- DuplicateRecordFields
+- FlexibleContexts
+- GADTs
+- GeneralizedNewtypeDeriving
+- LambdaCase
+- PolyKinds
+- RankNTypes
+- RecordWildCards
+- ScopedTypeVariables
+- TypeApplications
+- TypeOperators
+- TypeFamilies
+
 dependencies:
 - base >= 4.7 && < 5
+- polysemy
+- polysemy-plugin
+- uuid
+- text
 
 library:
   source-dirs: src
