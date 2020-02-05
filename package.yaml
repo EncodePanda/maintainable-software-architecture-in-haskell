@@ -62,3 +62,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - maintainable-software-architecture-in-haskell
+    - hedgehog

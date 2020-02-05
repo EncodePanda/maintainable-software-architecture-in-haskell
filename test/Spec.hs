@@ -1,2 +1,6 @@
+import           FM.DoStuffSpec as FM.DoStuffSpec
+import           Hedgehog.Main
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = defaultMain
+ [ FM.DoStuffSpec.spec
+ ]

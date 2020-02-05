@@ -1,4 +1,6 @@
 module Main where
 
+import           FM.Fm
+
 main :: IO ()
-main = pure ()
+main = putStrLn $ doStuff 10
