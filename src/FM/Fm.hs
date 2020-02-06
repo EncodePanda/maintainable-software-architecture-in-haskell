@@ -6,7 +6,7 @@ import           Data.UUID  (UUID)
 
 data Storage =
   Persist UUID Int
-  deriving (Show, Eq)
+  deriving stock (Eq, Show)
 
 -- | take Int, store it, return +1 as text
 doStuff :: UUID -> Int -> (Storage, String)
