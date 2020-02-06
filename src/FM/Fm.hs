@@ -21,7 +21,7 @@ doStuff uuid i =
 
 type InMemStorage = M.Map UUID Int
 
-interpret :: IORef InMemStorage -> ([Storage], String) -> IO String
+interpret :: IORef InMemStorage -> ([Storage], a) -> IO a
 interpret ioRef (actions, i) = do
   traverse perform actions
   return i
