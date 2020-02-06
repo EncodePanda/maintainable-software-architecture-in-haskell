@@ -10,7 +10,12 @@ data Storage =
 
 -- | take Int, store it once, story it twice, return +1 as text
 doStuff :: UUID -> Int -> ([Storage], String)
-doStuff uuid i = ([(Persist uuid newI)], "New value: " ++ (show newI))
+doStuff uuid i =
+  ( [ (Persist uuid newI)
+    , (Persist uuid newI)
+    ]
+  , "New value: " ++ (show newI)
+  )
   where
     newI = i + 1
 
