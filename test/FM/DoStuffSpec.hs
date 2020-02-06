@@ -20,7 +20,7 @@ prop_returns_plus1 = property $ do
   -- when
   let result = doStuff uuid i
   -- then
-  let expected = ( Persist uuid (i + 1)
+  let expected = ( [Persist uuid (i + 1)]
                  , "New value: " ++ (show $ i + 1)
                  )
   result === expected

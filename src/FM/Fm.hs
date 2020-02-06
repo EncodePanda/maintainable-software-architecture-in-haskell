@@ -8,15 +8,17 @@ data Storage =
   Persist UUID Int
   deriving stock (Eq, Show)
 
--- | take Int, store it, return +1 as text
-doStuff :: UUID -> Int -> (Storage, String)
-doStuff uuid i = ((Persist uuid newI), "New value: " ++ (show newI))
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> ([Storage], String)
+doStuff uuid i = ([(Persist uuid newI)], "New value: " ++ (show newI))
   where
     newI = i + 1
 
 type InMemStorage = M.Map UUID Int
 
-interpret :: IORef InMemStorage -> (Storage, String) -> IO String
-interpret ioRef (Persist uuid pi, i) = do
-  modifyIORef ioRef (M.insert uuid pi)
+interpret :: IORef InMemStorage -> ([Storage], String) -> IO String
+interpret ioRef (actions, i) = do
+  traverse perform actions
   return i
+  where
+    perform (Persist uuid pi) = modifyIORef ioRef (M.insert uuid pi)
