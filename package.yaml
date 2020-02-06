@@ -33,10 +33,12 @@ default-extensions:
 
 dependencies:
 - base >= 4.7 && < 5
+- containers
 - polysemy
 - polysemy-plugin
-- uuid
+- random
 - text
+- uuid
 
 library:
   source-dirs: src
