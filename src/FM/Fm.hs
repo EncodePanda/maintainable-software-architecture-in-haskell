@@ -4,26 +4,28 @@ import           Data.IORef
 import qualified Data.Map   as M
 import           Data.UUID  (UUID)
 
-data Storage =
-  Persist UUID Int
+data Storage k =
+    Done k
+  | Persist UUID Int
   deriving stock (Eq, Show)
 
 -- | take Int, store it once, story it twice, return +1 as text
-doStuff :: UUID -> Int -> ([Storage], String)
+doStuff :: UUID -> Int -> [Storage String]
 doStuff uuid i =
-  ( [ (Persist uuid newI)
+   [  (Persist uuid newI)
     , (Persist uuid newI)
+    , (Done $ "New value: " ++ (show newI))
     ]
-  , "New value: " ++ (show newI)
-  )
   where
     newI = i + 1
 
 type InMemStorage = M.Map UUID Int
 
-interpret :: IORef InMemStorage -> ([Storage], a) -> IO a
-interpret ioRef (actions, i) = do
-  traverse perform actions
-  return i
+interpret :: IORef InMemStorage -> [Storage a] -> IO a
+interpret ioRef actions = do
+  traverse perform (init actions)
+  value (last actions)
   where
     perform (Persist uuid pi) = modifyIORef ioRef (M.insert uuid pi)
+    value (Done a) = pure a
+    value _        = fail "failed"
