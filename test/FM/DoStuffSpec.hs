@@ -12,32 +12,19 @@ import qualified Hedgehog.Internal.Gen as Gen
 import qualified Hedgehog.Range        as Range
 import           System.Random         (random)
 
-prop_returns_plus1 :: Property
-prop_returns_plus1 = property $ do
+prop_fetch_add_store_return :: Property
+prop_fetch_add_store_return = property $ do
   -- given
   i <- forAll $ Gen.int (Range.constant 0 10)
   uuid <- forAll $ genUUID
+  initial <- forAll $ Gen.int (Range.constant 0 10)
+  ioRef <- evalIO $ newIORef $ M.singleton uuid initial
   -- when
-  let result = doStuff uuid i
-  -- then
-  let expected = (Persist uuid (i+1) (
-                     Persist uuid (i+1) (
-                         Done $ "New value: " ++ (show $ i + 1)
-                 )))
-  result === expected
-
-prop_persists_once :: Property
-prop_persists_once = property $ do
-  -- given
-  i <- forAll $ Gen.int (Range.constant 0 10)
-  uuid <- forAll $ genUUID
-  ioRef <- evalIO $ newIORef M.empty
-  -- when
-  let res = doStuff uuid i
-  evalIO $ interpret ioRef res
+  res <- evalIO $ interpret ioRef (doStuff uuid i)
   -- then
   inmem <- evalIO $ readIORef ioRef
-  M.toList inmem === [(uuid, i + 1)]
+  res === "New value: " ++ show (i + initial)
+  M.toList inmem === [(uuid, i + initial)]
 
 spec :: IO Bool
 spec = checkParallel $$(discover)
