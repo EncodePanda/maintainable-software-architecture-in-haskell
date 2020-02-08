@@ -16,14 +16,13 @@ instance Applicative Storage where
   (<*>) func (Done a)              = fmap (\f -> f a) func
   (<*>) func (Persist uuid i next) = Persist uuid i (func <*> next)
 
+persist :: UUID -> Int -> Storage ()
+persist uuid i = Persist uuid i (Done ())
+
 -- | take Int, store it once, story it twice, return +1 as text
 doStuff :: UUID -> Int -> Storage String
 doStuff uuid i =
-  (Persist uuid newI
-      (Persist uuid newI
-          (Done $ "New value: " ++ (show newI))
-      )
-  )
+  (persist uuid newI) *> (persist uuid newI) *> pure ("New value: " ++ (show newI))
   where
     newI = i + 1
 
