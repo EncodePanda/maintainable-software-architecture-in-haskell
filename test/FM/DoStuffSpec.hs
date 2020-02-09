@@ -5,7 +5,8 @@ import           Data.IORef
 import qualified Data.Map              as M
 import           Data.UUID             (UUID)
 import           Data.UUID.V4          (nextRandom)
-import           FM.Fm                 (Storage (..), doStuff, interpret)
+import           FM.Fm                 (Storage (..), doStuff, interpret,
+                                        interpretFree)
 import           Hedgehog
 import qualified Hedgehog.Gen          as Gen
 import qualified Hedgehog.Internal.Gen as Gen
@@ -20,7 +21,7 @@ prop_fetch_add_store_return = property $ do
   initial <- forAll $ Gen.int (Range.constant 0 10)
   ioRef <- evalIO $ newIORef $ M.singleton uuid initial
   -- when
-  res <- evalIO $ interpret ioRef (doStuff uuid i)
+  res <- evalIO $ interpretFree (interpret ioRef) (doStuff uuid i)
   -- then
   inmem <- evalIO $ readIORef ioRef
   res === "New value: " ++ show (i + initial)

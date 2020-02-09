@@ -6,30 +6,44 @@ import qualified Data.Map   as M
 import           Data.UUID  (UUID)
 
 data Storage k =
-    Done k
-  | Persist UUID Int (Storage k)
-  | Fetch UUID (Maybe Int -> Storage k)
+    Persist UUID Int k
+  | Fetch UUID (Maybe Int -> k)
   deriving stock (Functor)
 
-instance Applicative Storage where
-  pure a = Done a
-  (<*>) func (Done a)              = fmap (\f -> f a) func
-  (<*>) func (Persist uuid i next) = Persist uuid i (func <*> next)
+data Free (f:: * -> *) (k :: *) =
+  Pure k |
+  Impure (f (Free f k))
 
-instance Monad Storage where
-  (Done a) >>= f = f a
-  (Persist uuid i next) >>= f = Persist uuid i (next >>= f)
-  (Fetch uuid nextFunc) >>= f = Fetch uuid (\mi -> (nextFunc mi) >>= f)
+instance Functor f => Functor (Free f) where
+  fmap f (Pure k)   = Pure $ f k
+  fmap f (Impure c) = Impure (fmap (fmap f) c)
 
-persist :: UUID -> Int -> Storage ()
-persist uuid i = Persist uuid i (Done ())
+instance Functor f => Applicative (Free f) where
+  pure a = Pure a
+  (<*>) func (Pure a)   = fmap (\f -> f a) func
+  (<*>) func (Impure c) = Impure (fmap (\f -> func <*> f) c)
 
-fetch :: UUID -> Storage (Maybe Int)
-fetch uuid = Fetch uuid pure
+instance Functor f => Monad (Free f) where
+  Pure k >>= f = f k
+  Impure c >>= f = Impure $ fmap (\x -> x >>= f) c
+
+interpretFree ::
+  Monad m
+  => (forall x. f x -> m x)
+  -> Free f a
+  -> m a
+interpretFree _ (Pure a)   = pure a
+interpretFree f (Impure c) = f c >>= interpretFree f
+
+persist :: UUID -> Int -> Free Storage ()
+persist uuid i = Impure (Persist uuid i (Pure ()))
+
+fetch :: UUID -> Free Storage (Maybe Int)
+fetch uuid = Impure (Fetch uuid (\mi -> Pure mi))
 
 -- | take Int, fetch existing Int (if does not exist, default to zero)
 -- | add them, store the result, return result as text
-doStuff :: UUID -> Int -> Storage String
+doStuff :: UUID -> Int -> Free Storage String
 doStuff uuid i = do
   maybeOld <- fetch uuid
   let
@@ -41,10 +55,10 @@ doStuff uuid i = do
 type InMemStorage = M.Map UUID Int
 
 interpret :: IORef InMemStorage -> Storage a -> IO a
-interpret ioRef (Done a) = pure a
-interpret ioRef (Persist uuid i next) =
-  (modifyIORef ioRef (M.insert uuid i)) *> (interpret ioRef next)
-interpret ioRef (Fetch uuid nextFunc) = do
+interpret ioRef (Persist uuid i k) = do
+  modifyIORef ioRef (M.insert uuid i)
+  pure k
+interpret ioRef (Fetch uuid kFunc) = do
   inmem <- readIORef ioRef
   let maybeI = M.lookup uuid inmem
-  interpret ioRef (nextFunc maybeI)
+  pure $ kFunc maybeI

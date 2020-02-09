@@ -7,7 +7,11 @@ import           FM.Fm
 
 main :: IO ()
 main = do
-  ioRef <- newIORef $ M.empty
   uuid <- nextRandom
-  res <- interpret ioRef (doStuff uuid 10)
+  ioRef <- newIORef $ M.singleton uuid 5
+  res <- interpretFree (interpret ioRef) (program uuid)
   putStrLn res
+
+program uuid = do
+  doStuff uuid 10
+  doStuff uuid 20
