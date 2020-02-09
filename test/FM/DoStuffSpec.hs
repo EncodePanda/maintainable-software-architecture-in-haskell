@@ -5,8 +5,8 @@ import           Data.IORef
 import qualified Data.Map              as M
 import           Data.UUID             (UUID)
 import           Data.UUID.V4          (nextRandom)
-import           FM.Fm                 (Storage (..), doStuff, interpret,
-                                        interpretFree)
+import           FM.Fm                 (Storage (..), doStuff, interpret)
+import           FM.Free
 import           Hedgehog
 import qualified Hedgehog.Gen          as Gen
 import qualified Hedgehog.Internal.Gen as Gen

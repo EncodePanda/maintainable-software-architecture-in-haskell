@@ -1,9 +1,11 @@
 module Main where
 
 import           Data.IORef
+import           Data.IORef
 import qualified Data.Map     as M
 import           Data.UUID.V4 (nextRandom)
 import           FM.Fm
+import           FM.Free
 
 main :: IO ()
 main = do
