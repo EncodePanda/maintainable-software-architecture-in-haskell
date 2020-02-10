@@ -23,3 +23,8 @@ data CdrStore m a where
   FetchCdrs :: AccountId -> CdrStore m [Cdr]
 
 makeSem ''CdrStore
+
+runCdrStore ::
+     Sem (CdrStore ': r) a
+  -> Sem r a
+runCdrStore = undefined
