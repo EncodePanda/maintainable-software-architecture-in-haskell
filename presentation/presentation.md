@@ -221,11 +221,12 @@ prop_returns_plus1 = property $ do
   i    <- Gen.int
   uuid <- genUUID
   -- when
-  let (Persist puuid pi, res) = doStuff uuid i
+  let result = doStuff uuid i
   -- then
-  puuid === uuid
-  pi    === i + 1
-  res   === "New value: " ++ (show $ i + 1)
+  let expected = ( Persist uuid (i + 1)
+                 , "New value: " ++ (show $ i + 1)
+                 )
+  result === expected
 ```
 
 ---
@@ -363,11 +364,12 @@ prop_returns_plus1 = property $ do
   i    <- Gen.int
   uuid <- genUUID
   -- when
-  let (Persist puuid pi, res) = doStuff uuid i
+  let result = doStuff uuid i
   -- then
-  puuid === uuid
-  pi    === i + 1
-  res   === "New value: " ++ (show $ i + 1)
+  let expected = ( Persist uuid (i + 1)
+                 , "New value: " ++ (show $ i + 1)
+                 )
+  result === expected
 ```
 
 ---
@@ -379,11 +381,12 @@ prop_returns_plus1 = property $ do
   i    <- Gen.int
   uuid <- genUUID
   -- when
-  let ([Persist puuid pi], res) = doStuff uuid i
+  let result = doStuff uuid i
   -- then
-  puuid === uuid
-  pi    === i + 1
-  res   === "New value: " ++ (show $ i + 1)
+  let expected = ( [Persist uuid (i + 1)]
+                 , "New value: " ++ (show $ i + 1)
+                 )
+  result === expected
 ```
 
 ---
@@ -398,6 +401,250 @@ main = do
 ```
 
 ---
+
+```haskell
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> ([Storage], String)
+doStuff uuid i =
+  ( [(Persist uuid newI)]
+  , "New value: " ++ (show newI)
+  )
+  where
+    newI = i + 1
+```
+
+---
+
+```haskell
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> ([Storage], String)
+doStuff uuid i =
+  ( [ (Persist uuid newI)
+    , (Persist uuid newI)
+    ]
+  , "New value: " ++ (show newI)
+  )
+  where
+    newI = i + 1
+```
+
+---
+
+```haskell
+prop_returns_plus1 :: Property
+prop_returns_plus1 = property $ do
+  -- given
+  i    <- Gen.int
+  uuid <- genUUID
+  -- when
+  let result = doStuff uuid i
+  -- then
+  let expected = ( [Persist uuid (i + 1)]
+                 , "New value: " ++ (show $ i + 1)
+                 )
+  result === expected
+```
+
+---
+
+```haskell
+prop_returns_plus1 :: Property
+prop_returns_plus1 = property $ do
+  -- given
+  i    <- Gen.int
+  uuid <- genUUID
+  -- when
+  let result = doStuff uuid i
+  -- then
+  let expected = ( [ Persist uuid (i + 1)
+                   , Persist uuid (i + 1)]
+                 , "New value: " ++ (show $ i + 1)
+                 )
+  result === expected
+```
+
+---
+
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> ([Storage], String)
+  -> IO String
+interpret ioRef (actions, i) = do
+  traverse perform actions
+  return i
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+```
+
+---
+
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> ([Storage], a)
+  -> IO a
+interpret ioRef (actions, i) = do
+  traverse perform actions
+  return i
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+```
+
+---
+
+```haskell
+data Storage k =
+
+  Persist UUID Int
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> ([Storage], String)
+doStuff uuid i =
+  ( [ (Persist uuid newI)
+    , (Persist uuid newI)
+    ]
+  , "New value: " ++ (show newI)
+  )
+  where
+    newI = i + 1
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> [Storage String]
+doStuff uuid i =
+   [  (Persist uuid newI)
+    , (Persist uuid newI)
+    , (Done $ "New value: " ++ (show newI))
+    ]
+  where
+    newI = i + 1
+```
+
+---
+
+```haskell
+interpret ::
+     IORef InMemStorage
+  -> ([Storage], a)
+  -> IO a
+interpret ioRef (actions, i) = do
+  traverse perform actions
+  return i
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+```
+
+---
+
+```haskell
+interpret ::
+     IORef InMemStorage
+  -> [Storage a]
+  -> IO a
+interpret ioRef actions = do
+  traverse perform (init actions)
+  value (last actions)
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+    value (Done a) = pure a
+    value _        = fail "failed"
+```
+
+---
+[.code-highlight: 1-4]
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> [Storage String]
+doStuff uuid i =
+   [  (Persist uuid newI)
+    , (Persist uuid newI)
+    , (Done $ "New value: " ++ (show newI))
+    ]
+  where
+    newI = i + 1
+```
+
+---
+
+[.code-highlight: 1-4]
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> [Storage String]
+doStuff uuid i =
+   [  (Persist uuid newI)
+    , (Persist uuid newI)
+    , (Done $ "New value: " ++ (show newI))
+    ]
+  where
+    newI = i + 1
+```
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> [Storage String]
+doStuff uuid i =
+   [  (Persist uuid newI)
+    , (Persist uuid newI)
+    , (Done $ "New value: " ++ (show newI))
+    ]
+  where
+    newI = i + 1
+```
+---
+
+```haskell
+
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  (Persist uuid newI
+      (Persist uuid newI
+          (Done $ "New value: " ++ (show newI))
+  ))
+  where
+    newI = i + 1
+```
+---
+
 
 # Resources
 
