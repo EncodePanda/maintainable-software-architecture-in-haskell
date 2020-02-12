@@ -39,6 +39,10 @@ slidenumbers: true
 
 ---
 
+# Does writing code sucks?
+
+---
+
 # [fit] Why writing code sucks (sometimes)?
 
 ---
@@ -63,7 +67,7 @@ doStuff :: Int -> Int
 doStuff i = i + 1
 ```
 
-# [fit] Why this function soooo good?
+# [fit] Why this function is soooo good?
 
 + easy to test
 + you will be notified if its behavior changes
@@ -114,6 +118,10 @@ doStuff uuid i = do
 
 ---
 
+# [fit] Let's start with something simple
+
+---
+
 ```haskell
 -- | take Int, return +1 as text
 doStuff :: Int -> String
@@ -144,17 +152,29 @@ main = putStrLn $ doStuff 10
 
 ---
 
-[.code-highlight: 1-2]
+```haskell
+-- | take Int, return +1 as text
+doStuff :: Int -> String
+doStuff i = "New value: " ++ (show $ i + 1)
+```
+
+---
+[.code-highlight: 1]
+```haskell
+-- | take Int, return +1 as text
+doStuff :: Int -> String
+doStuff i = "New value: " ++ (show $ i + 1)
+```
+
+---
+[.code-highlight: 1]
+
 ```haskell
 -- | take Int, store it, return +1 as text
-doStuff :: UUID -> Int -> (Storage, String)
-doStuff uuid i =
-  ( Persist uuid newI
-  , "New value: " ++ (show newI)
-  )
-  where
-    newI = i + 1
+doStuff :: Int -> String
+doStuff i = "New value: " ++ (show $ i + 1)
 ```
+
 ---
 
 ![inline](img/01doStuff01.png)
@@ -194,6 +214,24 @@ doStuff uuid i =
 ---
 
 ![inline](img/01doStuff10.png)
+
+---
+
+```haskell
+data Storage = Persist UUID Int
+```
+
+[.code-highlight: 1-2]
+```haskell
+-- | take Int, store it, return +1 as text
+doStuff :: UUID -> Int -> (Storage, String)
+doStuff uuid i =
+  ( Persist uuid newI
+  , "New value: " ++ (show newI)
+  )
+  where
+    newI = i + 1
+```
 
 ---
 
@@ -272,7 +310,7 @@ main = do
 ---
 
 ```haskell
--- | take Int, store it, return +1 as text
+-- | take Int, store it,                      return +1 as text
 doStuff :: UUID -> Int -> (Storage, String)
 doStuff uuid i =
   ( Persist uuid newI
@@ -466,6 +504,27 @@ prop_returns_plus1 = property $ do
 ---
 
 ```haskell
+doStuff   :: UUID -> Int -> (Storage, String)
+interpret ::                (Storage, String) -> IO String
+```
+
+---
+
+```haskell
+sthElse   :: UUID -> Int -> (Storage, Int)
+interpret ::                (Storage, String) -> IO String
+```
+
+---
+
+```haskell
+sthElse   :: UUID -> Int -> (Storage, Int)
+interpret ::                (Storage, a)      ->      IO a
+```
+
+---
+
+```haskell
 type InMemStorage = M.Map UUID Int
 
 interpret ::
@@ -530,8 +589,7 @@ doStuff :: UUID -> Int -> [Storage String]
 doStuff uuid i =
    [  (Persist uuid newI)
     , (Persist uuid newI)
-    , (Done $ "New value: " ++ (show newI))
-    ]
+    , (Done $ "New value: " ++ (show newI))]
   where
     newI = i + 1
 ```
@@ -643,8 +701,133 @@ doStuff uuid i =
   where
     newI = i + 1
 ```
+
 ---
 
+```haskell
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  modifyIORef ioRef (M.insert uuid i) *>
+  interpret ioRef next
+```
+
+---
+
+![inline](img/applicative_docs1.png)
+
+---
+
+![inline](img/applicative_docs2.png)
+
+---
+
+```haskell
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  modifyIORef ioRef (M.insert uuid i) *>
+  interpret ioRef next
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  (Persist uuid newI
+      (Persist uuid newI
+          (Done $ "New value: " ++ (show newI))
+  ))
+  where
+    newI = i + 1
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Eq, Show)
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Functor, Eq, Show)
+
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Functor, Eq, Show)
+
+instance Applicative Storage where
+  pure a = Done a
+  (<*>) func (Done a)              =
+    fmap (\f -> f a) func
+  (<*>) func (Persist uuid i next) =
+    Persist uuid i (func <*> next)
+```
+
+---
+
+```haskell
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  (Persist uuid newI
+      (Persist uuid newI
+          (Done $ "New value: " ++ (show newI))
+  ))
+  where
+    newI = i + 1
+```
+
+---
+
+```haskell
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  Persist uuid newI (Done ()) *>
+  Persist uuid newI (Done ()) *>
+  pure ("New value: " ++ (show newI))
+  where
+    newI = i + 1
+```
+
+---
+
+```haskell
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  persist uuid newI *>
+  persist uuid newI *>
+  pure ("New value: " ++ (show newI))
+  where
+    newI = i + 1
+
+persist :: UUID -> Int -> Storage ()
+persist uuid i = Persist uuid i (Done ())
+```
+
+---
 
 # Resources
 
