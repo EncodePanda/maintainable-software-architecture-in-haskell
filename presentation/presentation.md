@@ -1253,6 +1253,12 @@ prop_fetch_add_store_return = property $ do
 # [fit] Free Monads?
 
 ---
+
+> "As a Billing System user I want to generate an invoice for a given account based on its current system use"
+
+
+
+---
 # Resources
 
 
