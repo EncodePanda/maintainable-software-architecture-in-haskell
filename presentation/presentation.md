@@ -954,6 +954,22 @@ persist :: UUID -> Int -> Storage ()
 persist uuid i = Persist uuid i (Done ())
 
 fetch :: UUID -> Storage (Maybe Int)
+fetch uuid = Fetch uuid (\mi -> Done mi)
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID (Maybe Int -> Storage k)
+  deriving stock (Functor)
+
+persist :: UUID -> Int -> Storage ()
+persist uuid i = Persist uuid i (Done ())
+
+fetch :: UUID -> Storage (Maybe Int)
 fetch uuid = Fetch uuid pure
 ```
 
@@ -1254,11 +1270,72 @@ prop_fetch_add_store_return = property $ do
 
 ---
 
-> "As a Billing System user I want to generate an invoice for a given account based on its current system use"
+# Free Monads?
 
-
++ I have more than one effect, no what?
++ (...)
 
 ---
+
+> "As a Billing System user I want to generate an invoice for a given account based on its current system use"
+
+---
+![inline](img/wb01.png)
+
+---
+![inline](img/wb02.png)
+
+---
+![inline](img/wb03.png)
+
+---
+![inline](img/wb04.png)
+
+---
+![inline](img/wb03.png)
+
+---
+![inline](img/wb05.png)
+
+---
+![inline](img/wb06.png)
+
+---
+![inline](img/wb07.png)
+
+---
+![inline](img/wb06.png)
+
+---
+![inline](img/wb08.png)
+
+---
+![inline](img/wb09.png)
+
+---
+![inline](img/wb10.png)
+
+---
+![inline](img/wb11.png)
+
+---
+![inline](img/wb12.png)
+
+---
+
+# To generate invoice for account `account_id`
+
+1. fetch profile from CRM
+2. fetch CDRs from FTP
+3. generate invoice number
+4. total = sum cdrs
+5. glue together
+
+---
+![inline](img/wb12.png)
+
+---
+
 # Resources
 
 
