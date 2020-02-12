@@ -1274,6 +1274,7 @@ prop_fetch_add_store_return = property $ do
 
 + I have more than one effect, no what?
 + (...)
++ Fun programming kata, but what does it have to do with real world?
 
 ---
 
@@ -1336,6 +1337,1074 @@ prop_fetch_add_store_return = property $ do
 
 ---
 
+![inline](img/polysemy-logo.png)
+
+[https://github.com/polysemy-research/polysemy](https://github.com/polysemy-research/polysemy)
+
+---
+
+# [fit] __*Sem*__ *r a*
+
+[.code-highlight: 0]
+
+```haskell
+.
+program :: Sem '[Console, (Random Int)] Int
+
+
+```
+
+---
+
+# [fit] __*Sem*__ *r a*
+
+```haskell
+.
+program :: Sem '[Console, (Random Int)] Int
+
+
+```
+
+---
+
+# [fit] *Sem* *r* __*a*__
+
+
+```haskell
+.
+program :: Sem '[Console, (Random Int)] Int
+
+
+```
+
+---
+
+# [fit] *Sem* *r* __*a*__
+
+
+```haskell
+                                        ___
+program :: Sem '[Console, (Random Int)] Int
+                                        ___
+.________________________________________^
+```
+
+---
+
+# [fit] *Sem* __*r*__ *a*
+
+
+```haskell
+.
+program :: Sem '[Console, (Random Int)] Int
+
+
+```
+
+---
+
+# [fit] *Sem* __*r*__ *a*
+
+
+```haskell
+               ________________________
+program :: Sem '[Console, (Random Int)] Int
+               ________________________
+.________________________^
+```
+
+---
+
+# [fit] *Sem* __*r*__ *a*
+
+
+```haskell
+.
+program :: Sem '[Console, (Random Int)] Int
+
+
+```
+
+---
+
+# [fit] *Sem* __*r*__ *a*
+
+```haskell
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+.
+```
+
+---
+
+# [fit] *Sem* __*r*__ *a*
+
+```haskell
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+.________^
+```
+
+---
+
+# [fit] *Sem* __*r*__ *a*
+
+```haskell
+
+program ::
+     Member Console r         <|
+  => Member (Random Int) r    <|
+  => Sem r Int                 |
+.________^_____________________|
+```
+
+---
+
+[.code-highlight: 1-4]
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+makeSem ''Console
+
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+
+```
+
+---
+
+[.code-highlight: 2]
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+makeSem ''Console
+
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+
+```
+
+
+---
+
+[.code-highlight: 2,6-8]
+
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+makeSem ''Console
+
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+
+```
+
+
+---
+
+[.code-highlight: 2,6-10]
+
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+makeSem ''Console
+
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+
+```
+
+
+---
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+makeSem ''Console
+
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+
+```
+
+---
+
+[.code-highlight: 2,7,12]
+
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+makeSem ''Console
+
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+
+```
+
+---
+
+[.code-highlight: 2,8,13]
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+makeSem ''Console
+
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+
+```
+
+
+---
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+makeSem ''Console
+
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+
+```
+
+---
+
+[.code-highlight: 3]
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Random v m a where
+  NextRandom :: Random v m v
+
+makeSem ''Random
+
+nextRandom :: Member (Random v) r => Sem r v
+```
+
+---
+
+[.code-highlight: 3, 6-7]
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Random v m a where
+  NextRandom :: Random v m v
+
+makeSem ''Random
+
+nextRandom :: Member (Random v) r => Sem r v
+```
+
+
+---
+
+[.code-highlight: 3, 6-9]
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Random v m a where
+  NextRandom :: Random v m v
+
+makeSem ''Random
+
+nextRandom :: Member (Random v) r => Sem r v
+```
+
+---
+
+[.code-highlight: 3, 6-11]
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+data Random v m a where
+  NextRandom :: Random v m v
+
+makeSem ''Random
+
+nextRandom :: Member (Random v) r => Sem r v
+```
+
+---
+
+[.code-highlight: 6-9]
+
+```haskell
+-- cheatsheet
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+nextRandom :: Member (Random v) r => Sem r v
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+program = do
+  printLine "Insert your number:"
+  i1 <- readLine
+  i2 <- nextRandom
+  pure (read i1 + i2)
+```
+
+---
+
+[.code-highlight: 1-9]
+
+```haskell
+-- cheatsheet
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+nextRandom :: Member (Random v) r => Sem r v
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+program = do
+  printLine "Insert your number:"
+  i1 <- readLine
+  i2 <- nextRandom
+  pure (read i1 + i2)
+```
+
+---
+
+[.code-highlight: 1-11]
+
+```haskell
+-- cheatsheet
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+nextRandom :: Member (Random v) r => Sem r v
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+program = do
+  printLine "Insert your number:"
+  i1 <- readLine
+  i2 <- nextRandom
+  pure (read i1 + i2)
+```
+
+---
+
+[.code-highlight: 1-12]
+
+```haskell
+-- cheatsheet
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+nextRandom :: Member (Random v) r => Sem r v
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+program = do
+  printLine "Insert your number:"
+  i1 <- readLine
+  i2 <- nextRandom
+  pure (read i1 + i2)
+```
+
+---
+
+[.code-highlight: 1-13]
+
+```haskell
+-- cheatsheet
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+nextRandom :: Member (Random v) r => Sem r v
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+program = do
+  printLine "Insert your number:"
+  i1 <- readLine
+  i2 <- nextRandom
+  pure (read i1 + i2)
+```
+
+---
+
+
+```haskell
+-- cheatsheet
+printLine :: Member Console r => String -> Sem r ()
+readLine  :: Member Console r => Sem r String
+nextRandom :: Member (Random v) r => Sem r v
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+program = do
+  printLine "Insert your number:"
+  i1 <- readLine
+  i2 <- nextRandom
+  pure (read i1 + i2)
+```
+
+---
+
+```haskell
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+program = do
+  printLine "Insert your number:"
+  i1 <- readLine
+  i2 <- nextRandom
+  pure (read i1 + i2)
+
+-- Sem r a ~> IO a ?
+
+```
+
+---
+
+[.code-highlight: 1]
+
+```haskell
+run  :: Sem '[] a -> a
+
+runM :: Monad m
+     => Sem '[Embed m] a -> m a
+
+-- Sem '[Embed IO] a -> IO a
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+-- Sem '[Console, Random Int] Int
+```
+
+---
+
+[.code-highlight: 3-4]
+
+```haskell
+run  :: Sem '[] a -> a
+
+runM :: Monad m
+     => Sem '[Embed m] a -> m a
+
+-- Sem '[Embed IO] a -> IO a
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+-- Sem '[Console, Random Int] Int
+```
+
+
+---
+
+[.code-highlight: 3-6]
+
+```haskell
+run  :: Sem '[] a -> a
+
+runM :: Monad m
+     => Sem '[Embed m] a -> m a
+
+-- Sem '[Embed IO] a -> IO a
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+-- Sem '[Console, Random Int] Int
+```
+
+---
+
+[.code-highlight: 3-11]
+
+```haskell
+run  :: Sem '[] a -> a
+
+runM :: Monad m
+     => Sem '[Embed m] a -> m a
+
+-- Sem '[Embed IO] a -> IO a
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+-- Sem '[Console, Random Int] Int
+```
+
+---
+
+[.code-highlight: 3-13]
+
+```haskell
+run  :: Sem '[] a -> a
+
+runM :: Monad m
+     => Sem '[Embed m] a -> m a
+
+-- Sem '[Embed IO] a -> IO a
+
+program ::
+     Member Console r
+  => Member (Random Int) r
+  => Sem r Int
+
+-- Sem '[Console, Random Int] Int
+```
+
+---
+
+> What we need is an *interpreter*
+
+---
+
+[.code-highlight: 1-3]
+
+```haskell
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+
+runConsoleIO ::
+     Member (Embed IO) r
+  => Sem (Console ': r) a -> Sem r a
+runConsoleIO = interpret $ \case
+  PrintLine line -> putStrLn line
+  ReadLine -> getLine
+```
+
+---
+
+[.code-highlight: 1-3, 6, 8]
+
+```haskell
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+
+runConsoleIO ::
+     Member (Embed IO) r
+  => Sem (Console ': r) a -> Sem r a
+runConsoleIO = interpret $ \case
+  PrintLine line -> putStrLn line
+  ReadLine -> getLine
+```
+
+---
+
+[.code-highlight: 1-3, 6, 8-9]
+
+```haskell
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+
+runConsoleIO ::
+     Member (Embed IO) r
+  => Sem (Console ': r) a -> Sem r a
+runConsoleIO = interpret $ \case
+  PrintLine line -> putStrLn line
+  ReadLine -> getLine
+```
+
+
+---
+
+[.code-highlight: 1-3, 6, 8-10]
+
+```haskell
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+
+runConsoleIO ::
+     Member (Embed IO) r
+  => Sem (Console ': r) a -> Sem r a
+runConsoleIO = interpret $ \case
+  PrintLine line -> putStrLn line
+  ReadLine -> getLine
+```
+
+
+---
+
+[.code-highlight: 1-3, 6, 8-11]
+
+```haskell
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+
+runConsoleIO ::
+     Member (Embed IO) r
+  => Sem (Console ': r) a -> Sem r a
+runConsoleIO = interpret $ \case
+  PrintLine line -> putStrLn line
+  ReadLine -> getLine
+```
+
+
+---
+
+```haskell
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+
+runConsoleIO ::
+     Member (Embed IO) r
+  => Sem (Console ': r) a -> Sem r a
+runConsoleIO = interpret $ \case
+  PrintLine line -> putStrLn line
+  ReadLine -> getLine
+```
+
+---
+
+```haskell
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+-- embed :: Member (Embed m) r => m a -> Sem r a
+runConsoleIO ::
+     Member (Embed IO) r
+  => Sem (Console ': r) a -> Sem r a
+runConsoleIO = interpret $ \case
+  PrintLine line -> putStrLn line
+  ReadLine -> getLine
+```
+
+---
+
+```haskell
+data Console m a where
+  PrintLine :: String -> Console m ()
+  ReadLine :: Console m String
+
+-- embed :: Member (Embed m) r => m a -> Sem r a
+runConsoleIO ::
+     Member (Embed IO) r
+  => Sem (Console ': r) a -> Sem r a
+runConsoleIO = interpret $ \case
+  PrintLine line -> embed $ putStrLn line
+  ReadLine -> embed $ getLine
+```
+
+
+---
+
+[.code-highlight: 1-2]
+
+```haskell
+data Random v m a where
+  NextRandom :: Random v m v
+
+runRandomIO ::
+     Member (Embed IO) r
+  => Sem (Random Int ': r) a -> Sem r a
+runRandomIO = interpret $ \case
+  NextRandom -> embed randomIO
+
+```
+
+---
+
+```haskell
+data Random v m a where
+  NextRandom :: Random v m v
+
+runRandomIO ::
+     Member (Embed IO) r
+  => Sem (Random Int ': r) a -> Sem r a
+runRandomIO = interpret $ \case
+  NextRandom -> embed randomIO
+```
+
+---
+
+```haskell
+main :: IO ()
+main = execute >>= putStrLn.show
+  where
+    execute = program
+      & runConsoleIO
+      & runRandomIO
+      & runM
+```
+
+---
+
+
+```haskell
+main :: IO ()
+main = execute >>= putStrLn.show
+  where
+    execute = program -- Sem '[Console, Random Int          ] Int
+      & runConsoleIO
+      & runRandomIO
+      & runM
+```
+
+---
+
+```haskell
+main :: IO ()
+main = execute >>= putStrLn.show
+  where
+    execute = program -- Sem '[Console, Random Int          ] Int
+      & runConsoleIO  -- Sem '[       , Random Int, Embed IO] Int
+      & runRandomIO
+      & runM
+```
+
+---
+
+```haskell
+main :: IO ()
+main = execute >>= putStrLn.show
+  where
+    execute = program -- Sem '[Console, Random Int          ] Int
+      & runConsoleIO  -- Sem '[       , Random Int, Embed IO] Int
+      & runRandomIO   -- Sem '[                   , Embed IO] Int
+      & runM
+```
+
+---
+
+```haskell
+main :: IO ()
+main = execute >>= putStrLn.show
+  where
+    execute = program -- Sem '[Console, Random Int          ] Int
+      & runConsoleIO  -- Sem '[       , Random Int, Embed IO] Int
+      & runRandomIO   -- Sem '[                   , Embed IO] Int
+      & runM          -- IO Int
+```
+---
+![inline](img/wb12.png)
+
+---
+
+```haskell
+data Invoice = Invoice
+  { invoiceNumber   :: InvoiceNumber
+  , fullName        :: FullName
+  , deliveryAddress :: Address
+  , total           :: Cent
+  }
+```
+---
+
+```haskell
+newtype InvoiceNumber = InvoiceNumber { unInvoiceNumber :: Text }
+  deriving (Show, Eq)
+
+data Address = Address
+  { street  :: Text
+  , house   :: Text
+  , num     :: Text
+  , city    :: Text
+  , country :: Text
+  }
+
+data FullName = FullName
+  { first :: Text
+  , last  :: Text
+  }
+```
+
+---
+```haskell
+data Invoice = Invoice
+  { invoiceNumber   :: InvoiceNumber
+  , fullName        :: FullName
+  , deliveryAddress :: Address
+  , total           :: Cent
+  }
+```
+
+---
+```haskell
+data CallType = Voice | Sms
+
+newtype Duration = Duration { unDuration :: Int }
+  deriving stock (Show, Eq)
+  deriving newtype (Num)
+
+data Cdr = Cdr
+  { uuid         :: UUID
+  , accountId    :: AccountId
+  , callType     :: CallType
+  , callDuration :: Duration
+  }
+```
+
+---
+```haskell
+data Plan = Plan
+  { voiceCost :: Cent
+  , smsCost   :: Cent
+  }
+
+data Profile = Profile
+  { firstName :: Text
+  , lastName  :: Text
+  , address   :: Address
+  , plan      :: Plan
+  }
+```
+
+---
+
+```haskell
+mkInvoice ::
+     InvoiceNumber
+  -> Profile
+  -> [Cdr]
+  -> Invoice
+mkInvoice invNum Profile {..} cdrs = Invoice
+  { invoiceNumber = invNum
+  , fullName = FullName firstName lastName
+  , deliveryAddress= address
+  , total = foldr cost zeroCents cdrs
+  }
+  where
+    cost (Cdr _ _ Voice (Duration duration)) acc = acc + (voiceCost plan * duration)
+    cost (Cdr _ _ Sms (Duration amount)) acc = acc + (smsCost plan * amount)
+```
+
+----
+
+```haskell
+mkInvoice ::
+     InvoiceNumber
+  -> Profile
+  -> [Cdr]
+  -> Invoice
+mkInvoice = ...
+```
+
+---
+![inline](img/wb12.png)
+
+---
+![inline](img/wb13.png)
+
+---
+![inline](img/wb14.png)
+
+---
+
+```haskell
+import           Polysemy
+
+data Crm m a where
+  GetProfile :: AccountId -> Crm m Profile
+
+makeSem ''Crm
+```
+
+---
+![inline](img/wb14.png)
+
+---
+![inline](img/wb15.png)
+
+---
+![inline](img/wb16.png)
+
+---
+
+```haskell
+import           Polysemy
+
+data CdrStore m a where
+  FetchCdrs :: AccountId -> CdrStore m [Cdr]
+
+makeSem ''CdrStore
+```
+
+---
+![inline](img/wb16.png)
+
+---
+![inline](img/wb17.png)
+
+---
+![inline](img/wb18.png)
+
+---
+
+```haskell
+import           Polysemy
+
+data InvoiceStore m a where
+  GenNextInvoiceNumber :: AccountId -> InvoiceStore m InvoiceNumber
+
+makeSem ''InvoiceStore
+```
+---
+![inline](img/wb18.png)
+
+---
+![inline](img/wb19.png)
+
+---
+![inline](img/wb20.png)
+
+---
+
+```haskell
+import           Polysemy
+
+data InvoiceStore m a where
+  GenNextInvoiceNumber :: AccountId -> InvoiceStore m InvoiceNumber
+
+makeSem ''InvoiceStore
+```
+
+---
+
+```haskell
+import           Polysemy
+
+data InvoiceStore m a where
+  GenNextInvoiceNumber :: AccountId -> InvoiceStore m InvoiceNumber
+  StoreInvoice         :: AccountId -> Invoice -> InvoiceStore m ()
+
+makeSem ''InvoiceStore
+```
+---
+![inline](img/wb20.png)
+
+---
+![inline](img/wb21.png)
+
+---
+
+```haskell
+generateInvoice ::
+     Member CdrStore r
+  => Member Crm r
+  => Member InvoiceStore r
+  => AccountId
+  -> Sem r Invoice
+generateInvoice accId = do
+  invNumber   <- genNextInvoiceNumber accId
+  profile     <- getProfile accId
+  cdrs        <- fetchCdrs accId
+  let invoice = mkInvoice invNumber profile cdrs
+  storeInvoice accId invoice
+  return invoice
+```
+
+---
 # Resources
 
 
