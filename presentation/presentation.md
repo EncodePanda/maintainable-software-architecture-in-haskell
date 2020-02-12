@@ -504,22 +504,22 @@ prop_returns_plus1 = property $ do
 ---
 
 ```haskell
-doStuff   :: UUID -> Int -> (Storage, String)
-interpret ::                (Storage, String) -> IO String
+doStuff   :: UUID -> Int -> ([Storage], String)
+interpret ::                ([Storage], String) -> IO String
 ```
 
 ---
 
 ```haskell
-sthElse   :: UUID -> Int -> (Storage, Int)
-interpret ::                (Storage, String) -> IO String
+sthElse   :: UUID -> Int -> ([Storage], Int)
+interpret ::                ([Storage], String) -> IO String
 ```
 
 ---
 
 ```haskell
-sthElse   :: UUID -> Int -> (Storage, Int)
-interpret ::                (Storage, a)      ->      IO a
+sthElse   :: UUID -> Int -> ([Storage], Int)
+interpret ::                ([Storage], a)      ->      IO a
 ```
 
 ---
@@ -1056,6 +1056,201 @@ doStuff uuid i = do
   persist uuid newI
   pure ("New value: " ++ (show newI))
 ```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID (Maybe Int -> Storage k)
+  deriving stock (Functor)
+
+instance Applicative Storage where
+  pure a = Done a
+  (<*>) func (Done a)              = fmap (\f -> f a) func
+  (<*>) func (Persist uuid i next) = Persist uuid i (func <*> next)
+
+instance Monad Storage where
+  (Done a) >>= f = f a
+  (Persist uuid i next) >>= f = Persist uuid i (next >>= f)
+  (Fetch uuid nextFunc) >>= f = Fetch uuid (\mi -> (nextFunc mi) >>= f)
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID (Maybe Int -> Storage k)
+  deriving stock (Functor)
+```
+
+---
+
+```haskell
+data Storage k =
+    Persist UUID Int k
+  | Fetch UUID (Maybe Int -> k)
+  deriving stock (Functor)
+
+data Free (f:: * -> *) (k :: *) =
+  Pure k |
+  Impure (f (Free f k))
+
+```
+
+---
+
+```haskell
+data Storage k =
+    Persist UUID Int k
+  | Fetch UUID (Maybe Int -> k)
+  deriving stock (Functor)
+
+data Free (f:: * -> *) (k :: *) =
+  Pure k |
+  Impure (f (Free f k))
+
+persist :: UUID -> Int -> Free Storage ()
+persist uuid i = Impure (Persist uuid i (Pure ()))
+
+fetch :: UUID -> Free Storage (Maybe Int)
+fetch uuid = Impure (Fetch uuid (\mi -> Pure mi))
+```
+
+---
+
+```haskell
+instance Functor f => Functor (Free f) where
+  fmap f (Pure k)   = Pure $ f k
+  fmap f (Impure c) = Impure (fmap (fmap f) c)
+
+instance Functor f => Applicative (Free f) where
+  pure a = Pure a
+  (<*>) func (Pure a)   = fmap (\f -> f a) func
+  (<*>) func (Impure c) = Impure (fmap (\f -> func <*> f) c)
+
+instance Functor f => Monad (Free f) where
+  Pure k >>= f = f k
+  Impure c >>= f = Impure $ fmap (\x -> x >>= f) c
+```
+
+---
+
+```haskell
+data Storage k =
+    Persist UUID Int k
+  | Fetch UUID (Maybe Int -> k)
+  deriving stock (Functor)
+```
+
+---
+
+```haskell
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+
+```haskell
+doStuff :: UUID -> Int -> Free Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+
+```haskell
+interpretFree ::
+  Monad m
+  => (forall x. f x -> m x)
+  -> Free f a
+  -> m a
+interpretFree _ (Pure a)   = pure a
+interpretFree f (Impure c) = f c >>= interpretFree f
+
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Persist uuid i k) = do
+  modifyIORef ioRef (M.insert uuid i)
+  pure k
+interpret ioRef (Fetch uuid kFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  pure $ kFunc maybeI
+```
+
+---
+
+```haskell
+interpretFree :: Monad m => (forall x. f x -> m x) -> Free f a -> m a
+interpret :: IORef InMemStorage -> Storage a -> IO a
+```
+
+---
+```haskell
+interpretFree ::                        (f x ->  m x) -> Free f a         -> m a
+interpret :: IORef InMemStorage -> Storage a -> IO a
+```
+---
+```haskell
+interpretFree ::                        (f x ->  m x) -> Free f a         -> m a
+interpret :: IORef InMemStorage -> Storage a -> IO a
+
+interpreter :: Free Storage a -> IO a
+```
+---
+
+```haskell
+prop_fetch_add_store_return :: Property
+prop_fetch_add_store_return = property $ do
+  -- given
+  i       <- Gen.int
+  uuid    <- genUUID
+  initial <- Gen.int
+  ioRef   <- evalIO $ newIORef $ M.singleton uuid initial
+  -- when
+  res     <- evalIO $ interpret ioRef (doStuff uuid i)
+  -- then
+  inmem   <- evalIO $ readIORef ioRef
+  res            === "New value: " ++ show (i + initial)
+  M.toList inmem === [(uuid, i + initial)]
+```
+
+---
+
+```haskell
+prop_fetch_add_store_return :: Property
+prop_fetch_add_store_return = property $ do
+  -- given
+  i       <- Gen.int
+  uuid    <- genUUID
+  initial <- Gen.int
+  ioRef   <- evalIO $ newIORef $ M.singleton uuid initial
+  -- when
+  res     <- evalIO $ interpret (interpret ioRef) (doStuff uuid i)
+  -- then
+  inmem   <- evalIO $ readIORef ioRef
+  res            === "New value: " ++ show (i + initial)
+  M.toList inmem === [(uuid, i + initial)]
+```
+
+---
+
+# [fit] Free Monads?
 
 ---
 # Resources
