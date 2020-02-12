@@ -828,8 +828,238 @@ persist uuid i = Persist uuid i (Done ())
 ```
 
 ---
+[.code-highlight: 1-3]
+```haskell
+-- | take Int, fetch existing Int (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  fetch uuid *>
+  persist ...
 
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID ...
+  deriving stock (Functor)
+
+fetch :: UUID -> Storage (Maybe Int)
+```
+
+---
+[.code-highlight: 1-3, 8-10, 12]
+```haskell
+-- | take Int, fetch existing Int (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  fetch uuid *>
+  persist ...
+
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID ...
+  deriving stock (Functor)
+
+fetch :: UUID -> Storage (Maybe Int)
+```
+
+---
+[.code-highlight: 1-3, 8-12]
+```haskell
+-- | take Int, fetch existing Int (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  fetch uuid *>
+  persist ...
+
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID ...
+  deriving stock (Functor)
+
+fetch :: UUID -> Storage (Maybe Int)
+```
+
+---
+
+[.code-highlight: 1-3, 8-14]
+```haskell
+-- | take Int, fetch existing Int (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  fetch uuid *>
+  persist ...
+
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID ...
+  deriving stock (Functor)
+
+fetch :: UUID -> Storage (Maybe Int)
+```
+
+---
+```haskell
+-- | take Int, fetch existing Int (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  fetch uuid *>
+  persist ...
+
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID ...
+  deriving stock (Functor)
+
+fetch :: UUID -> Storage (Maybe Int)
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Functor)
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID (Maybe Int -> Storage k)
+  deriving stock (Functor)
+```
+
+---
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  | Fetch UUID (Maybe Int -> Storage k)
+  deriving stock (Functor)
+
+persist :: UUID -> Int -> Storage ()
+persist uuid i = Persist uuid i (Done ())
+
+fetch :: UUID -> Storage (Maybe Int)
+fetch uuid = Fetch uuid pure
+```
+
+---
+
+> "Sequentially compose two actions, passing any value produced by the first as an argument to the second."
+
+---
+
+# [fit] ??? :: *m a -> (a -> m b) -> m b*
+
+---
+
+# [fit] **>>=** :: *m a -> (a -> m b) -> m b*
+
+
+---
+```haskell
+instance Monad Storage where
+  (Done a) >>= f = f a
+  (Persist uuid i next) >>= f =
+    Persist uuid i (next >>= f)
+  (Fetch uuid nextFunc) >>= f =
+    Fetch uuid (\mi -> (nextFunc mi) >>= f)
+```
+
+---
+
+```haskell
+-- | take Int, fetch existing Int
+-- | (if does not exist, default to zero)
+-- | add them,
+-- | store the result,
+-- | return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  (modifyIORef ioRef (M.insert uuid i)) *> (interpret ioRef next)
+interpret ioRef (Fetch uuid nextFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  interpret ioRef (nextFunc maybeI)
+```
+
+---
+
+```haskell
+prop_fetch_add_store_return :: Property
+prop_fetch_add_store_return = property $ do
+  -- given
+  i       <- Gen.int
+  uuid    <- genUUID
+  initial <- Gen.int
+  ioRef   <- evalIO $ newIORef $ M.singleton uuid initial
+  -- when
+  res     <- evalIO $ interpret ioRef (doStuff uuid i)
+  -- then
+  inmem   <- evalIO $ readIORef ioRef
+  res            === "New value: " ++ show (i + initial)
+  M.toList inmem === [(uuid, i + initial)]
+```
+
+---
+
+```haskell
+doStuff :: UUID -> Int -> IO String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+
+```haskell
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
 # Resources
+
 
 + [Urban Expansion](https://www.youtube.com/watch?v=AqUSo2hstHI)
 + [Haskell Pyramid](https://patrickmn.com/software/the-haskell-pyramid/)
