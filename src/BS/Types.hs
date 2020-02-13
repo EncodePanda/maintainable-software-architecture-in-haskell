@@ -3,10 +3,10 @@ module BS.Types where
 import           Data.Text
 
 newtype AccountId  = AccountId { unAccountId :: Int }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 newtype InvoiceNumber = InvoiceNumber { unInvoiceNumber :: Text }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 type Cent = Int
 

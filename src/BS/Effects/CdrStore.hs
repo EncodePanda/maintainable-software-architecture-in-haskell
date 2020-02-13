@@ -1,9 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 module BS.Effects.CdrStore where
 
-import           BS.Types  (AccountId)
-import           Data.UUID (UUID)
+import           BS.Types       (AccountId)
+import qualified Data.Map       as M
+import           Data.UUID      (UUID)
 import           Polysemy
+import           Polysemy.State
 
 data CallType = Voice | Sms
 
@@ -19,12 +21,15 @@ data Cdr = Cdr
   }
 
 data CdrStore m a where
-  StoreCdr  :: AccountId -> Cdr -> CdrStore m ()
   FetchCdrs :: AccountId -> CdrStore m [Cdr]
 
 makeSem ''CdrStore
 
+type CdrMap = M.Map AccountId [Cdr]
+
 runCdrStore ::
-     Sem (CdrStore ': r) a
+     Member (State CdrMap) r
+  => Sem (CdrStore ': r) a
   -> Sem r a
-runCdrStore = undefined
+runCdrStore = interpret $ \case
+  FetchCdrs accountId -> gets (\m -> m M.! accountId)
