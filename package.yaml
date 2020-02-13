@@ -30,8 +30,12 @@ default-extensions:
 - TypeApplications
 - TypeOperators
 - TypeFamilies
+- DeriveGeneric
 
 dependencies:
+- aeson
+- aeson-pretty
+- bytestring
 - base >= 4.7 && < 5
 - containers
 - polysemy
