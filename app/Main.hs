@@ -22,7 +22,7 @@ import           Polysemy
 import           Polysemy.State
 
 main :: IO ()
-main = execute >>= putStrLn.unpack.toStrict.encodePretty
+main = execute >>= putStrLn.prettyPrint
   where
     accountId = AccountId 1000
     execute = generateInvoice accountId
@@ -33,6 +33,7 @@ main = execute >>= putStrLn.unpack.toStrict.encodePretty
       & evalState @CdrMap (M.singleton accountId (cdrs accountId))
       & evalState @InvoiceMap M.empty
       & runM
+    prettyPrint = unpack.toStrict.encodePretty
 
 profile :: Profile
 profile = Profile "John" "Smith" address plan
@@ -42,10 +43,11 @@ profile = Profile "John" "Smith" address plan
     plan = Plan 10 1
 
 cdrs :: AccountId -> [Cdr]
-cdrs accountId = [ cdr "8abbe08f-4b64-4263-b000-13f3ff77a0c6" Voice 10
-       , cdr "bed067b0-3e79-429d-8b96-d1f2c96e79ba" Sms 1
-       , cdr "d4bea3d9-a2a7-44cc-8a8d-301051860761" Voice 30
-       ]
+cdrs accountId =
+  [ cdr "8abbe08f-4b64-4263-b000-13f3ff77a0c6" Voice 10
+  , cdr "bed067b0-3e79-429d-8b96-d1f2c96e79ba" Sms 1
+  , cdr "d4bea3d9-a2a7-44cc-8a8d-301051860761" Voice 30
+  ]
   where
     cdr uuid callType duration =
       Cdr (maybe nil id (fromString uuid)) accountId callType (Duration duration)

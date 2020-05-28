@@ -1,4 +1,4 @@
-build-lists: true
+build-lists: false
 footer: © Pawel Szulc, @EncodePanda, paul.szulc@gmail.com
 slidenumbers: true
 
@@ -17,6 +17,26 @@ slidenumbers: true
 
 ---
 
+**maintain** *[ meyn-teyn ]*
+
+*verb (used with object)*
+1. to keep in **existence**
+2. to keep in **an appropriate condition**, operation, or force; keep unimpaired:
+3. to keep in a specified state, position, etc.
+
+---
+
+**maintain** *[ meyn-teyn ]*
+
+*verb (used with object)*
+1. to keep in **existence**
+2. to keep in **an appropriate condition**, operation, or force; keep unimpaired:
+3. to keep in a specified state, position, etc.
+
+## ... in **Haskell**?
+
+---
+
 > "~~Socialism~~ Haskell is a ~~system~~ language which heroically overcomes difficulties unknown in any other ~~system~~ language"
 
 ---
@@ -29,6 +49,12 @@ slidenumbers: true
 
 ---
 
+# [fit] Maintainable Software Architeture
+
+# in Haskell
+
+---
+
 # Our plan for today
 
 1. Coding Dojo / Hack day
@@ -36,6 +62,7 @@ slidenumbers: true
   - problem
   - approach
   - consequences
+  - Polysemy
 
 ---
 
@@ -54,7 +81,7 @@ slidenumbers: true
 > "As a Billing System user I want to generate an invoice for a given account based on its current system use"
 
 ---
-
+[.build-lists: true]
 # Functions and their nature
 
 1. Manipulate data (`f :: Input -> Output`)
@@ -62,6 +89,7 @@ slidenumbers: true
 
 ---
 
+[.build-lists: true]
 ```haskell
 doStuff :: Int -> Int
 doStuff i = i + 1
@@ -75,6 +103,92 @@ doStuff i = i + 1
 ---
 
 # It's easy to maintain function if it only manipulates data.
+
+---
+
+```haskell
+-- | take an Int (i) and UUID (uuid) as parameters
+-- | fetch existing Int under given uuid from MongoDB
+-- | (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> IO String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+[.code-highlight: 1,5-6]
+
+```haskell
+-- | take an Int (i) and UUID (uuid) as parameters
+-- | fetch existing Int under given uuid from MongoDB
+-- | (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> IO String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+[.code-highlight: 2,7]
+```haskell
+-- | take an Int (i) and UUID (uuid) as parameters
+-- | fetch existing Int under given uuid from MongoDB
+-- | (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> IO String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+[.code-highlight: 3,8-9]
+```haskell
+-- | take an Int (i) and UUID (uuid) as parameters
+-- | fetch existing Int under given uuid from MongoDB
+-- | (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> IO String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+[.code-highlight: 4,10-12]
+```haskell
+-- | take an Int (i) and UUID (uuid) as parameters
+-- | fetch existing Int under given uuid from MongoDB
+-- | (if does not exist, default to zero)
+-- | add them, store the result, return result as text
+doStuff :: UUID -> Int -> IO String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
 
 ---
 
@@ -217,12 +331,26 @@ doStuff i = "New value: " ++ (show $ i + 1)
 
 ---
 
+[.code-highlight: 3-4]
 ```haskell
 data Storage = Persist UUID Int
+
+-- | take Int, store it, return +1 as text
+doStuff :: UUID -> Int -> (Storage, String)
+doStuff uuid i =
+  ( Persist uuid newI
+  , "New value: " ++ (show newI)
+  )
+  where
+    newI = i + 1
 ```
 
-[.code-highlight: 1-2]
+---
+
+[.code-highlight: 1-4]
 ```haskell
+data Storage = Persist UUID Int
+
 -- | take Int, store it, return +1 as text
 doStuff :: UUID -> Int -> (Storage, String)
 doStuff uuid i =
@@ -237,9 +365,7 @@ doStuff uuid i =
 
 ```haskell
 data Storage = Persist UUID Int
-```
 
-```haskell
 -- | take Int, store it, return +1 as text
 doStuff :: UUID -> Int -> (Storage, String)
 doStuff uuid i =
@@ -248,6 +374,77 @@ doStuff uuid i =
   )
   where
     newI = i + 1
+```
+
+---
+
+```haskell
+prop_returns_plus1 :: Property
+prop_returns_plus1 = property $ do
+  -- given
+  i    <- Gen.int
+  uuid <- genUUID
+  -- when
+  let result = doStuff uuid i
+  -- then
+  let expected = ( Persist uuid (i + 1)
+                 , "New value: " ++ (show $ i + 1)
+                 )
+  result === expected
+```
+
+---
+[.code-highlight: 4-5]
+
+```haskell
+prop_returns_plus1 :: Property
+prop_returns_plus1 = property $ do
+  -- given
+  i    <- Gen.int
+  uuid <- genUUID
+  -- when
+  let result = doStuff uuid i
+  -- then
+  let expected = ( Persist uuid (i + 1)
+                 , "New value: " ++ (show $ i + 1)
+                 )
+  result === expected
+```
+
+---
+[.code-highlight: 7]
+
+```haskell
+prop_returns_plus1 :: Property
+prop_returns_plus1 = property $ do
+  -- given
+  i    <- Gen.int
+  uuid <- genUUID
+  -- when
+  let result = doStuff uuid i
+  -- then
+  let expected = ( Persist uuid (i + 1)
+                 , "New value: " ++ (show $ i + 1)
+                 )
+  result === expected
+```
+
+---
+[.code-highlight: 9-12]
+
+```haskell
+prop_returns_plus1 :: Property
+prop_returns_plus1 = property $ do
+  -- given
+  i    <- Gen.int
+  uuid <- genUUID
+  -- when
+  let result = doStuff uuid i
+  -- then
+  let expected = ( Persist uuid (i + 1)
+                 , "New value: " ++ (show $ i + 1)
+                 )
+  result === expected
 ```
 
 ---
@@ -283,6 +480,7 @@ interpret ::                (Storage, String) -> IO String
 ```
 
 ---
+[.code-highlight: 3,5-6]
 
 ```haskell
 type InMemStorage = M.Map UUID Int
@@ -296,6 +494,49 @@ interpret ioRef (Persist uuid pi, i) = do
   return i
 ```
 
+---
+
+[.code-highlight: 1, 3,5-6]
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> (Storage, String)
+  -> IO String
+interpret ioRef (Persist uuid pi, i) = do
+  modifyIORef ioRef (M.insert uuid pi)
+  return i
+```
+
+---
+
+[.code-highlight: 1-6]
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> (Storage, String)
+  -> IO String
+interpret ioRef (Persist uuid pi, i) = do
+  modifyIORef ioRef (M.insert uuid pi)
+  return i
+```
+
+---
+
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> (Storage, String)
+  -> IO String
+interpret ioRef (Persist uuid pi, i) = do
+  modifyIORef ioRef (M.insert uuid pi)
+  return i
+```
 ---
 
 ```haskell
@@ -377,7 +618,23 @@ interpret ioRef (Persist uuid pi, i) = do
 ```
 
 ---
+[.code-highlight: 4-5]
 
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> (Storage, String)
+  -> IO String
+interpret ioRef (Persist uuid pi, i) = do
+  modifyIORef ioRef (M.insert uuid pi)
+  return i
+```
+
+---
+
+[.code-highlight: 4-5]
 ```haskell
 type InMemStorage = M.Map UUID Int
 
@@ -393,6 +650,92 @@ interpret ioRef (actions, i) = do
 	  modifyIORef ioRef (M.insert uuid pi)
 ```
 
+---
+
+[.code-highlight: 1-7]
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> ([Storage], String)
+  -> IO String
+interpret ioRef (actions, i) = do
+  traverse perform actions
+  return i
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+```
+
+---
+
+[.code-highlight: 7-8]
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> ([Storage], String)
+  -> IO String
+interpret ioRef (actions, i) = do
+  traverse perform actions
+  return i
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+```
+---
+
+[.code-highlight: 7-8, 11-12]
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> ([Storage], String)
+  -> IO String
+interpret ioRef (actions, i) = do
+  traverse perform actions
+  return i
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+```
+---
+
+[.code-highlight: 9]
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> ([Storage], String)
+  -> IO String
+interpret ioRef (actions, i) = do
+  traverse perform actions
+  return i
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+```
+
+---
+
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret ::
+     IORef InMemStorage
+  -> ([Storage], String)
+  -> IO String
+interpret ioRef (actions, i) = do
+  traverse perform actions
+  return i
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+```
 ---
 
 ```haskell
@@ -503,6 +846,10 @@ prop_returns_plus1 = property $ do
 
 ---
 
+![inline](img/finalform1.png)
+
+---
+
 ```haskell
 doStuff   :: UUID -> Int -> ([Storage], String)
 interpret ::                ([Storage], String) -> IO String
@@ -568,10 +915,86 @@ data Storage k =
 doStuff :: UUID -> Int -> ([Storage], String)
 doStuff uuid i =
   ( [ (Persist uuid newI)
-    , (Persist uuid newI)
-    ]
+    , (Persist uuid newI)]
   , "New value: " ++ (show newI)
   )
+  where
+    newI = i + 1
+```
+
+---
+[.code-highlight: 9-12]
+
+```haskell
+data Storage k =
+
+  Persist UUID Int
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> ([Storage], String)
+doStuff uuid i =
+  ( [ (Persist uuid newI)
+    , (Persist uuid newI)]
+  , "New value: " ++ (show newI)
+  )
+  where
+    newI = i + 1
+```
+
+---
+[.code-highlight: 1,3-4]
+
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> [Storage String]
+doStuff uuid i =
+   [  (Persist uuid newI)
+    , (Persist uuid newI)
+    , (Done $ "New value: " ++ (show newI))]
+  where
+    newI = i + 1
+```
+
+---
+
+[.code-highlight: 1-4]
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> [Storage String]
+doStuff uuid i =
+   [  (Persist uuid newI)
+    , (Persist uuid newI)
+    , (Done $ "New value: " ++ (show newI))]
+  where
+    newI = i + 1
+```
+
+---
+
+[.code-highlight: 1-4, 9-11]
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> [Storage String]
+doStuff uuid i =
+   [  (Persist uuid newI)
+    , (Persist uuid newI)
+    , (Done $ "New value: " ++ (show newI))]
   where
     newI = i + 1
 ```
@@ -607,6 +1030,74 @@ interpret ioRef (actions, i) = do
   where
     perform (Persist uuid pi) =
 	  modifyIORef ioRef (M.insert uuid pi)
+```
+
+---
+[.code-highlight: 3-4]
+
+```haskell
+interpret ::
+     IORef InMemStorage
+  -> ([Storage], a)
+  -> IO a
+interpret ioRef (actions, i) = do
+  traverse perform actions
+  return i
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+```
+
+---
+[.code-highlight: 3-4]
+
+```haskell
+interpret ::
+     IORef InMemStorage
+  -> [Storage a]
+  -> IO a
+interpret ioRef actions = do
+  traverse perform (init actions)
+  value (last actions)
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+    value (Done a) = pure a
+    value _        = fail "failed"
+```
+---
+[.code-highlight: 6,9-10]
+
+```haskell
+interpret ::
+     IORef InMemStorage
+  -> [Storage a]
+  -> IO a
+interpret ioRef actions = do
+  traverse perform (init actions)
+  value (last actions)
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+    value (Done a) = pure a
+    value _        = fail "failed"
+```
+
+---
+[.code-highlight: 7,11-12]
+```haskell
+interpret ::
+     IORef InMemStorage
+  -> [Storage a]
+  -> IO a
+interpret ioRef actions = do
+  traverse perform (init actions)
+  value (last actions)
+  where
+    perform (Persist uuid pi) =
+	  modifyIORef ioRef (M.insert uuid pi)
+    value (Done a) = pure a
+    value _        = fail "failed"
 ```
 
 ---
@@ -682,6 +1173,7 @@ doStuff uuid i =
   where
     newI = i + 1
 ```
+
 ---
 
 ```haskell
@@ -704,6 +1196,87 @@ doStuff uuid i =
 
 ---
 
+[.code-highlight: 1-4,9-11]
+```haskell
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  (Persist uuid newI
+      (Persist uuid newI
+          (Done $ "New value: " ++ (show newI))
+  ))
+  where
+    newI = i + 1
+```
+
+---
+[.code-highlight: 1-4,7]
+```haskell
+
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  (Persist uuid newI
+      (Persist uuid newI
+          (Done $ "New value: " ++ (show newI))
+  ))
+  where
+    newI = i + 1
+```
+---
+
+```haskell
+
+data Storage k =
+    Done k
+  | Persist UUID Int (Storage k)
+  deriving stock (Eq, Show)
+
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  (Persist uuid newI
+      (Persist uuid newI
+          (Done $ "New value: " ++ (show newI))
+  ))
+  where
+    newI = i + 1
+```
+
+---
+
+```haskell
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  modifyIORef ioRef (M.insert uuid i) *>
+  interpret ioRef next
+```
+
+---
+
+[.code-highlight: 2]
+```haskell
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  modifyIORef ioRef (M.insert uuid i) *>
+  interpret ioRef next
+```
+
+---
+
+[.code-highlight: 3-5]
 ```haskell
 interpret :: IORef InMemStorage -> Storage a -> IO a
 interpret ioRef (Done a) = pure a
@@ -794,6 +1367,47 @@ doStuff uuid i =
       (Persist uuid newI
           (Done $ "New value: " ++ (show newI))
   ))
+  where
+    newI = i + 1
+```
+
+---
+
+```haskell
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  Persist uuid newI (Done ()) *>
+  Persist uuid newI (Done ()) *>
+  pure ("New value: " ++ (show newI))
+  where
+    newI = i + 1
+```
+
+---
+[.code-highlight: 4]
+
+```haskell
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  Persist uuid newI (Done ()) *>
+  Persist uuid newI (Done ()) *>
+  pure ("New value: " ++ (show newI))
+  where
+    newI = i + 1
+```
+
+---
+[.code-highlight: 5-6]
+
+```haskell
+-- | take Int, store it once, story it twice, return +1 as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i =
+  Persist uuid newI (Done ()) *>
+  Persist uuid newI (Done ()) *>
+  pure ("New value: " ++ (show newI))
   where
     newI = i + 1
 ```
@@ -998,6 +1612,65 @@ instance Monad Storage where
 
 ---
 
+![inline](img/finalform2.jpg)
+
+---
+
+```haskell
+-- | take Int, fetch existing Int
+-- | (if does not exist, default to zero)
+-- | add them,
+-- | store the result,
+-- | return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+[.code-highlight: 1,7-8]
+
+```haskell
+-- | take Int, fetch existing Int
+-- | (if does not exist, default to zero)
+-- | add them,
+-- | store the result,
+-- | return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+[.code-highlight: 2,10]
+```haskell
+-- | take Int, fetch existing Int
+-- | (if does not exist, default to zero)
+-- | add them,
+-- | store the result,
+-- | return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+[.code-highlight: 3,11]
 ```haskell
 -- | take Int, fetch existing Int
 -- | (if does not exist, default to zero)
@@ -1016,6 +1689,138 @@ doStuff uuid i = do
 
 ---
 
+[.code-highlight: 4,12]
+```haskell
+-- | take Int, fetch existing Int
+-- | (if does not exist, default to zero)
+-- | add them,
+-- | store the result,
+-- | return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+[.code-highlight: 5,13]
+```haskell
+-- | take Int, fetch existing Int
+-- | (if does not exist, default to zero)
+-- | add them,
+-- | store the result,
+-- | return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+
+```haskell
+-- | take Int, fetch existing Int
+-- | (if does not exist, default to zero)
+-- | add them,
+-- | store the result,
+-- | return result as text
+doStuff :: UUID -> Int -> Storage String
+doStuff uuid i = do
+  maybeOld <- fetch uuid
+  let
+    oldI = maybe 0 id maybeOld
+    newI = oldI + i
+  persist uuid newI
+  pure ("New value: " ++ (show newI))
+```
+
+---
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  (modifyIORef ioRef (M.insert uuid i)) *> (interpret ioRef next)
+interpret ioRef (Fetch uuid nextFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  interpret ioRef (nextFunc maybeI)
+```
+
+---
+[.code-highlight: 7-10]
+
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  (modifyIORef ioRef (M.insert uuid i)) *> (interpret ioRef next)
+interpret ioRef (Fetch uuid nextFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  interpret ioRef (nextFunc maybeI)
+```
+
+---
+[.code-highlight: 8]
+
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  (modifyIORef ioRef (M.insert uuid i)) *> (interpret ioRef next)
+interpret ioRef (Fetch uuid nextFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  interpret ioRef (nextFunc maybeI)
+```
+
+---
+[.code-highlight: 9]
+
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  (modifyIORef ioRef (M.insert uuid i)) *> (interpret ioRef next)
+interpret ioRef (Fetch uuid nextFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  interpret ioRef (nextFunc maybeI)
+```
+
+---
+[.code-highlight: 10]
+
+```haskell
+type InMemStorage = M.Map UUID Int
+
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Done a) = pure a
+interpret ioRef (Persist uuid i next) =
+  (modifyIORef ioRef (M.insert uuid i)) *> (interpret ioRef next)
+interpret ioRef (Fetch uuid nextFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  interpret ioRef (nextFunc maybeI)
+```
+
+---
 ```haskell
 type InMemStorage = M.Map UUID Int
 
@@ -1092,6 +1897,9 @@ instance Monad Storage where
   (Persist uuid i next) >>= f = Persist uuid i (next >>= f)
   (Fetch uuid nextFunc) >>= f = Fetch uuid (\mi -> (nextFunc mi) >>= f)
 ```
+---
+
+![inline](img/inception.jpeg)
 
 ---
 
@@ -1198,6 +2006,19 @@ interpretFree ::
   -> m a
 interpretFree _ (Pure a)   = pure a
 interpretFree f (Impure c) = f c >>= interpretFree f
+```
+
+---
+[.code-highlight: 1-7]
+
+```haskell
+interpretFree ::
+  Monad m
+  => (forall x. f x -> m x)
+  -> Free f a
+  -> m a
+interpretFree _ (Pure a)   = pure a
+interpretFree f (Impure c) = f c >>= interpretFree f
 
 interpret :: IORef InMemStorage -> Storage a -> IO a
 interpret ioRef (Persist uuid i k) = do
@@ -1212,22 +2033,72 @@ interpret ioRef (Fetch uuid kFunc) = do
 ---
 
 ```haskell
-interpretFree :: Monad m => (forall x. f x -> m x) -> Free f a -> m a
+interpretFree ::
+  Monad m
+  => (forall x. f x -> m x)
+  -> Free f a
+  -> m a
+interpretFree _ (Pure a)   = pure a
+interpretFree f (Impure c) = f c >>= interpretFree f
+
 interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Persist uuid i k) = do
+  modifyIORef ioRef (M.insert uuid i)
+  pure k
+interpret ioRef (Fetch uuid kFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  pure $ kFunc maybeI
+```
+---
+
+[.code-highlight: 3,9]
+```haskell
+interpretFree ::
+  Monad m
+  => (forall x. f x -> m x)
+  -> Free f a
+  -> m a
+interpretFree _ (Pure a)   = pure a
+interpretFree f (Impure c) = f c >>= interpretFree f
+
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Persist uuid i k) = do
+  modifyIORef ioRef (M.insert uuid i)
+  pure k
+interpret ioRef (Fetch uuid kFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  pure $ kFunc maybeI
+```
+---
+
+```haskell
+interpretFree ::
+  Monad m
+  => (forall x. f x -> m x)
+  -> Free f a
+  -> m a
+interpretFree _ (Pure a)   = pure a
+interpretFree f (Impure c) = f c >>= interpretFree f
+
+interpret :: IORef InMemStorage -> Storage a -> IO a
+interpret ioRef (Persist uuid i k) = do
+  modifyIORef ioRef (M.insert uuid i)
+  pure k
+interpret ioRef (Fetch uuid kFunc) = do
+  inmem <- readIORef ioRef
+  let maybeI = M.lookup uuid inmem
+  pure $ kFunc maybeI
 ```
 
 ---
+
 ```haskell
 interpretFree ::                        (f x ->  m x) -> Free f a         -> m a
 interpret :: IORef InMemStorage -> Storage a -> IO a
 ```
----
-```haskell
-interpretFree ::                        (f x ->  m x) -> Free f a         -> m a
-interpret :: IORef InMemStorage -> Storage a -> IO a
 
-interpreter :: Free Storage a -> IO a
-```
 ---
 
 ```haskell
@@ -1247,6 +2118,7 @@ prop_fetch_add_store_return = property $ do
 ```
 
 ---
+[.code-highlight: 9]
 
 ```haskell
 prop_fetch_add_store_return :: Property
@@ -1257,7 +2129,25 @@ prop_fetch_add_store_return = property $ do
   initial <- Gen.int
   ioRef   <- evalIO $ newIORef $ M.singleton uuid initial
   -- when
-  res     <- evalIO $ interpret (interpret ioRef) (doStuff uuid i)
+  res     <- evalIO $ interpret ioRef (doStuff uuid i)
+  -- then
+  inmem   <- evalIO $ readIORef ioRef
+  res            === "New value: " ++ show (i + initial)
+  M.toList inmem === [(uuid, i + initial)]
+```
+
+---
+[.code-highlight: 9]
+```haskell
+prop_fetch_add_store_return :: Property
+prop_fetch_add_store_return = property $ do
+  -- given
+  i       <- Gen.int
+  uuid    <- genUUID
+  initial <- Gen.int
+  ioRef   <- evalIO $ newIORef $ M.singleton uuid initial
+  -- when
+  res     <- evalIO $ interpretFree (interpret ioRef) (doStuff uuid i)
   -- then
   inmem   <- evalIO $ readIORef ioRef
   res            === "New value: " ++ show (i + initial)
@@ -1267,14 +2157,6 @@ prop_fetch_add_store_return = property $ do
 ---
 
 # [fit] Free Monads?
-
----
-
-# Free Monads?
-
-+ I have more than one effect, no what?
-+ (...)
-+ Fun programming kata, but what does it have to do with real world?
 
 ---
 
@@ -2405,8 +3287,315 @@ generateInvoice accId = do
 ```
 
 ---
-# Resources
+
+```haskell
+data Crm m a where
+  GetProfile :: AccountId -> Crm m Profile
+
+type CrmMap = M.Map AccountId Profile
+
+runCrm ::
+     Member (State CrmMap) r
+  => Sem (Crm ': r) a
+  -> Sem r a
+runCrm = interpret $ \case
+  GetProfile accountId -> gets (\m -> m M.! accountId)
+```
+
+---
+
+```haskell
+data CdrStore m a where
+  FetchCdrs :: AccountId -> CdrStore m [Cdr]
+
+type CdrMap = M.Map AccountId [Cdr]
+
+runCdrStore ::
+     Member (State CdrMap) r
+  => Sem (CdrStore ': r) a
+  -> Sem r a
+runCdrStore = interpret $ \case
+  FetchCdrs accountId -> gets (\m -> m M.! accountId)
+```
+
+---
+
+```haskell
+data InvoiceStore m a where
+  StoreInvoice         :: AccountId -> Invoice -> InvoiceStore m ()
+  GenNextInvoiceNumber :: AccountId -> InvoiceStore m InvoiceNumber
+
+type InvoiceMap = M.Map (AccountId, InvoiceNumber) Invoice
+
+runInvoiceStore ::
+     Member (State InvoiceMap) r
+  => Member (Embed IO) r
+  => Sem (InvoiceStore ': r) a
+  -> Sem r a
+runInvoiceStore = interpret $ \case
+  StoreInvoice accountId invoice ->
+    modify (M.insert (accountId, invoiceNumber invoice) invoice)
+  GenNextInvoiceNumber accountId ->
+    embed $ fmap (InvoiceNumber . toText) nextRandom
+```
+
+---
+[.code-highlight: 1-2,5]
+
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+
+[.code-highlight: 1-2,5-6]
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+[.code-highlight: 1-2,5-7]
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+[.code-highlight: 1-2,5-8]
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+[.code-highlight: 1-2,5-9]
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+
+```haskell
+profile :: Profile
+profile = Profile "John" "Smith" address plan
+  where
+    address =
+      Address "Backer Street" "221b" "2" "London" "United Kingdom"
+    plan = Plan 10 1
+```
+
+---
+[.code-highlight: 1-2,5-9]
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+[.code-highlight: 1-2,5-10]
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+
+```haskell
+cdrs :: AccountId -> [Cdr]
+cdrs accountId =
+  [ cdr "8abbe08f-4b64-4263-b000-13f3ff77a0c6" Voice 10
+  , cdr "bed067b0-3e79-429d-8b96-d1f2c96e79ba" Sms 1
+  , cdr "d4bea3d9-a2a7-44cc-8a8d-301051860761" Voice 30
+  ]
+```
+
+---
+[.code-highlight: 1-2,5-10]
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+[.code-highlight: 1-2,5-11]
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+[.code-highlight: 1-2,5-12]
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+
+---
+```haskell
+main :: IO ()
+main = execute
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+```
+---
+```haskell
+main :: IO ()
+main = execute >>= putStrLn.prettyPrint
+  where
+    accountId = AccountId 1000
+    execute = generateInvoice accountId
+      & runCrm
+      & runCdrStore
+      & runInvoiceStore
+      & evalState @CrmMap (M.singleton accountId profile)
+      & evalState @CdrMap (M.singleton accountId (cdrs accountId))
+      & evalState @InvoiceMap M.empty
+      & runM
+    prettyPrint = unpack.toStrict.encodePretty
+```
 
 
-+ [Urban Expansion](https://www.youtube.com/watch?v=AqUSo2hstHI)
-+ [Haskell Pyramid](https://patrickmn.com/software/the-haskell-pyramid/)
+---
+
+```json
+{
+    "fullName": {
+        "first": "John",
+        "last": "Smith"
+    },
+    "deliveryAddress": {
+        "country": "United Kingdom",
+        "num": "2",
+        "street": "Backer Street",
+        "house": "221b",
+        "city": "London"
+    },
+    "invoiceNumber": "136172ef-95cb-4714-924a-4d3f9c5e5fd6",
+    "total": 401
+}
+```
+
+---
+
+# [fit] Maintainable?
+
+---
+
+# [fit] Thank You!
+
+## Pawel Szulc
+
+## twitter: [@EncodePanda](https://twitter.com/EncodePanda)
+
+## email: paul.szulc@gmail.com
